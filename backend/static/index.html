@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mon SaaS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-900" x-data="app()" x-init="init()">
+
+  <!-- ── LOGIN ──────────────────────────────────────────────────────────────── -->
+  <div x-show="page === 'login'" class="min-h-screen flex flex-col items-center justify-center bg-gray-950">
+    <div class="flex items-center gap-3 mb-8">
+      <div class="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      </div>
+      <span class="text-white font-bold text-xl">Mon SaaS</span>
+    </div>
+    <div class="bg-gray-900 border border-white/[0.08] rounded-2xl p-7 shadow-2xl w-full max-w-sm mx-4">
+      <h1 class="text-white text-lg font-semibold mb-1">Connexion</h1>
+      <p class="text-gray-500 text-sm mb-6">Connecte-toi pour accéder à ton espace.</p>
+      <form @submit.prevent="login()">
+        <div class="mb-3">
+          <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Email</label>
+          <input x-model="loginEmail" type="email" required placeholder="nom@exemple.fr"
+            class="w-full bg-white/[0.04] border border-white/[0.1] text-white rounded-lg px-3 py-2.5 text-sm placeholder-gray-600 focus:outline-none focus:border-white/[0.3]">
+        </div>
+        <div class="mb-4">
+          <label class="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Mot de passe</label>
+          <input x-model="loginPassword" type="password" required placeholder="••••••••"
+            class="w-full bg-white/[0.04] border border-white/[0.1] text-white rounded-lg px-3 py-2.5 text-sm placeholder-gray-600 focus:outline-none focus:border-white/[0.3]">
+        </div>
+        <div x-show="loginError" class="mb-4 text-red-400 text-xs bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2" x-text="loginError"></div>
+        <button type="submit" :disabled="loginLoading" class="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm">
+          <span x-show="!loginLoading">Se connecter</span>
+          <span x-show="loginLoading">Connexion...</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── APP ────────────────────────────────────────────────────────────────── -->
+  <div x-show="page !== 'login'" class="flex w-full h-full overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="w-56 h-screen bg-white border-r border-gray-200 flex flex-col py-4 px-3 shrink-0">
+      <div class="flex items-center gap-2.5 px-2 mb-6">
+        <div class="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <span class="font-semibold text-gray-900 text-sm">Mon SaaS</span>
+      </div>
+
+      <nav class="flex flex-col gap-0.5 flex-1">
+        <button @click="page='dashboard'" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm w-full text-left transition-colors"
+          :class="page==='dashboard' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </button>
+
+        <button @click="page='leads'; loadLeads()" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm w-full text-left transition-colors"
+          :class="page==='leads' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.77 19.79 19.79 0 01.06 1.18 2 2 0 012.03 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+          Leads
+          <span x-show="leadsTotalAll > 0" class="ml-auto text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full" x-text="leadsTotalAll"></span>
+        </button>
+
+        <!-- ── AJOUTER ICI LES NOUVEAUX MENUS ──────────────────────────────── -->
+        <!-- Exemple :
+        <button @click="page='ma-page'" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm w-full text-left transition-colors"
+          :class="page==='ma-page' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-500 hover:bg-gray-50'">
+          <svg ...icône...</svg>
+          Ma page
+        </button> -->
+
+        <button x-show="currentUser?.role === 'admin'" @click="page='team'; loadUsers()" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm w-full text-left transition-colors"
+          :class="page==='team' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          Équipe
+        </button>
+
+        <button @click="page='appointments'" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm w-full text-left transition-colors"
+          :class="page==='appointments' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Rendez-vous
+        </button>
+      </nav>
+
+      <div class="flex flex-col gap-0.5 mt-auto border-t border-gray-100 pt-4">
+        <button @click="page='settings'" class="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm w-full text-left transition-colors"
+          :class="page==='settings' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Paramètres
+        </button>
+        <div x-data="{ open: false }">
+          <button x-show="open" @click="logout()" class="flex items-center gap-2 w-full px-3 py-2.5 mb-1 rounded-xl border border-gray-100 text-sm text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors bg-white">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Se déconnecter
+          </button>
+          <button @click="open = !open" class="flex items-center gap-2 px-2 py-2 w-full rounded-lg hover:bg-gray-50 transition-colors">
+            <div class="w-7 h-7 bg-gray-900 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
+              x-text="currentUser?.nom ? currentUser.nom.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() : '?'"></div>
+            <div class="flex-1 min-w-0 text-left">
+              <p class="text-xs font-medium text-gray-800 truncate" x-text="currentUser?.nom || 'Utilisateur'"></p>
+              <p class="text-[10px] text-gray-400 truncate" x-text="currentUser?.email || ''"></p>
+            </div>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 transition-transform" :class="open ? 'rotate-180' : ''"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENU -->
+    <div class="flex-1 p-6 overflow-y-auto min-w-0 h-screen">
+
+      <!-- DASHBOARD -->
+      <div x-show="page === 'dashboard'">
+        <h1 class="text-xl font-semibold text-gray-900 tracking-tight" x-text="`Bonjour ${currentUser?.nom?.split(' ')[0] || ''} 👋`"></h1>
+        <p class="text-sm text-gray-400 mt-1 mb-8">Bienvenue sur votre tableau de bord.</p>
+        <div class="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center text-gray-400">
+          <p class="text-sm font-medium mb-1">Zone Dashboard</p>
+          <p class="text-xs">Ajouter ici vos stats, graphiques, tableaux...</p>
+        </div>
+      </div>
+
+      <!-- LEADS -->
+      <div x-show="page === 'leads'">
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <h1 class="text-xl font-semibold text-gray-900">Leads</h1>
+            <p class="text-sm text-gray-400" x-text="`${leadsTotal} lead${leadsTotal !== 1 ? 's' : ''}`"></p>
+          </div>
+          <div class="flex gap-2">
+            <button @click="importCsvModal=true" class="flex items-center gap-2 border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Importer CSV
+            </button>
+            <button @click="openNewLead()" class="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nouveau lead
+            </button>
+          </div>
+        </div>
+
+        <!-- Filtres -->
+        <div class="flex gap-2 mb-4">
+          <div class="relative">
+            <input x-model="leadSearch" @input="leadPage=1; clearTimeout(leadTimer); leadTimer=setTimeout(()=>loadLeads(),350)" placeholder="Rechercher..." class="border border-gray-200 rounded-lg pl-8 pr-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 w-48 bg-white">
+            <svg class="absolute left-2.5 top-2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <select x-model="leadStatut" @change="leadPage=1; loadLeads()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 bg-white cursor-pointer">
+            <option value="tous">Tous les statuts</option>
+            <template x-for="s in statutsList.filter(s=>s.key!=='tous')" :key="s.key">
+              <option :value="s.key" x-text="s.label"></option>
+            </template>
+          </select>
+        </div>
+
+        <!-- Tableau -->
+        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div x-show="leads.length === 0" class="text-center py-16 text-gray-300 text-sm">Aucun lead</div>
+          <div x-show="leads.length > 0" style="overflow-x:auto">
+            <table class="w-full table-fixed">
+              <colgroup>
+                <col style="width:190px"/>
+                <col style="width:90px"/>
+                <col style="width:140px"/>
+                <col style="width:130px"/>
+                <col style="width:180px"/>
+                <col style="width:60px"/>
+              </colgroup>
+              <thead>
+                <tr class="border-b border-gray-100 bg-gray-50">
+                  <th class="text-left px-4 h-9 text-[10px] font-medium text-gray-400 uppercase tracking-wide">Nom</th>
+                  <th class="text-left px-3 h-9 text-[10px] font-medium text-gray-400 uppercase tracking-wide">Ville</th>
+                  <th class="text-left px-3 h-9 text-[10px] font-medium text-gray-400 uppercase tracking-wide">Téléphone</th>
+                  <th class="text-left px-3 h-9 text-[10px] font-medium text-gray-400 uppercase tracking-wide">Statut</th>
+                  <th class="text-left px-3 h-9 text-[10px] font-medium text-gray-400 uppercase tracking-wide">Note</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="lead in leads" :key="lead.id">
+                  <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-2 font-medium text-[11.5px] text-gray-900 truncate" x-text="lead.title"></td>
+                    <td class="px-3 py-2 text-[11.5px] text-gray-500 truncate" x-text="lead.city||'—'"></td>
+                    <td class="px-3 py-2 whitespace-nowrap">
+                      <a x-show="lead.telephone" :href="`tel:${lead.telephone}`" class="text-[11.5px] text-blue-600 hover:underline" x-text="lead.telephone"></a>
+                      <span x-show="!lead.telephone" class="text-gray-400 text-sm">—</span>
+                    </td>
+                    <td class="px-3 py-2">
+                      <template x-if="['rdv_pris','rdv_confirme','rdv_annule'].includes(lead.statut)">
+                        <span class="inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap"
+                          :class="statutClass(lead.statut)"
+                          x-text="statutsList.find(s=>s.key===lead.statut)?.label || lead.statut">
+                        </span>
+                      </template>
+                      <template x-if="!['rdv_pris','rdv_confirme','rdv_annule'].includes(lead.statut)">
+                        <button @click="openStatutMenu($event, lead)"
+                          class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap cursor-pointer"
+                          :class="statutClass(lead.statut)">
+                          <span x-text="statutsList.find(s=>s.key===lead.statut)?.label || 'Nouveau'"></span>
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                      </template>
+                    </td>
+                    <td class="px-3 py-2 max-w-[180px]" x-data="{editing:false,draft:''}">
+                      <div x-show="!editing" @click="editing=true; draft=lead.note||''" class="text-[11.5px] cursor-pointer min-h-[18px]">
+                        <span x-show="lead.note" class="text-gray-600 truncate block" x-text="lead.note"></span>
+                        <span x-show="!lead.note" class="text-gray-300">Note...</span>
+                      </div>
+                      <div x-show="editing" @click.stop>
+                        <textarea x-model="draft" rows="2" @keydown.escape="editing=false" class="w-full border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none resize-none"></textarea>
+                        <div class="flex gap-1 mt-1">
+                          <button @click="patchLead(lead.id,{note:draft}); lead.note=draft; editing=false" class="text-[10px] bg-gray-900 text-white px-2 py-0.5 rounded">OK</button>
+                          <button @click="editing=false" class="text-[10px] text-gray-400 px-2 py-0.5 rounded hover:bg-gray-100">✕</button>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-2 py-2">
+                      <div class="flex items-center gap-1.5">
+                        <button x-show="!lead.has_rdv" @click="openLeadRdvCreate(lead)" title="Planifier un RDV" class="text-blue-400 hover:text-blue-600 transition-colors text-sm leading-none">📅</button>
+                        <button x-show="lead.has_rdv" @click="leadRdvDetail=lead" :title="`Objet : ${lead.rdv_objet} | Le ${lead.rdv_date?.replace('T',' ')} (${lead.rdv_duration || 60} min)`" class="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition-colors leading-tight">🗓️</button>
+                        <button @click="openLeadDetail(lead)" class="text-gray-400 hover:text-gray-700 transition-colors">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        </button>
+                        <button @click="deleteLead(lead)" class="text-gray-300 hover:text-red-500 transition-colors">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+          <div x-show="leadsTotal > 0" class="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+            <span class="text-xs text-gray-400" x-text="`${Math.min((leadPage-1)*leadPageSize+1,leadsTotal)}–${Math.min(leadPage*leadPageSize,leadsTotal)} sur ${leadsTotal}`"></span>
+            <div class="flex gap-1">
+              <button @click="leadPage=Math.max(1,leadPage-1); loadLeads()" :disabled="leadPage===1" class="px-2 py-1 rounded text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-30">←</button>
+              <span class="text-xs text-gray-400" x-text="`${leadPage}/${Math.max(1,Math.ceil(leadsTotal/leadPageSize))}`"></span>
+              <button @click="leadPage=Math.min(Math.ceil(leadsTotal/leadPageSize),leadPage+1); loadLeads()" :disabled="leadPage>=Math.ceil(leadsTotal/leadPageSize)" class="px-2 py-1 rounded text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-30">→</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── AJOUTER ICI LES NOUVELLES PAGES ──────────────────────────────── -->
+
+      <!-- PARAMÈTRES -->
+      <div x-show="page === 'settings'">
+        <h1 class="text-xl font-semibold text-gray-900 mb-1">Paramètres</h1>
+        <p class="text-sm text-gray-400 mb-8">Gérez votre compte.</p>
+        <div class="max-w-lg space-y-4">
+          <div class="flex items-center gap-6">
+            <span class="text-sm text-gray-500 w-32 shrink-0">Nom complet</span>
+            <div class="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-sm text-gray-800" x-text="currentUser?.nom || ''"></div>
+          </div>
+          <div class="flex items-center gap-6">
+            <span class="text-sm text-gray-500 w-32 shrink-0">Email</span>
+            <div class="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-sm text-gray-400" x-text="currentUser?.email || ''"></div>
+          </div>
+        </div>
+        <div x-data="{ cp:'', np:'', conf:'', err:null, ok:false, loading:false }" class="max-w-lg mt-10">
+          <h2 class="text-sm font-semibold text-gray-900 mb-4">Changer le mot de passe</h2>
+          <div class="space-y-3">
+            <div class="flex items-center gap-6"><span class="text-sm text-gray-500 w-32 shrink-0">Actuel</span><input x-model="cp" type="password" placeholder="••••••••" class="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"></div>
+            <div class="flex items-center gap-6"><span class="text-sm text-gray-500 w-32 shrink-0">Nouveau</span><input x-model="np" type="password" placeholder="••••••••" class="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"></div>
+            <div class="flex items-center gap-6"><span class="text-sm text-gray-500 w-32 shrink-0">Confirmer</span><input x-model="conf" type="password" placeholder="••••••••" class="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"></div>
+            <div x-show="err" class="text-xs text-red-500" x-text="err"></div>
+            <div x-show="ok" class="text-xs text-green-600 font-medium">Mot de passe mis à jour.</div>
+            <div class="flex justify-end">
+              <button :disabled="loading" @click="async()=>{err=null;ok=false;if(!cp||!np||!conf){err='Tous les champs sont requis';return;}if(np!==conf){err='Les mots de passe ne correspondent pas';return;}if(np.length<6){err='6 caractères minimum';return;}loading=true;const r=await apiFetch(`${API}/auth/me/password`,{method:'PATCH',body:JSON.stringify({current_password:cp,new_password:np})});loading=false;if(!r.ok){const e=await r.json();err=e.detail||'Erreur';return;}ok=true;cp='';np='';conf='';}" class="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ÉQUIPE -->
+      <div x-show="page === 'team'" x-init="$watch('page', v => v==='team' && loadUsers())">
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-xl font-semibold text-gray-900">Équipe</h1>
+          <button @click="createUserModal=true; newUser={nom:'',email:'',password:'',role:'user'}" class="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Créer un compte
+          </button>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="px-5 py-3 text-left text-xs font-medium text-gray-400 uppercase">Nom</th>
+                <th class="px-5 py-3 text-left text-xs font-medium text-gray-400 uppercase">Email</th>
+                <th class="px-5 py-3 text-left text-xs font-medium text-gray-400 uppercase">Rôle</th>
+                <th class="px-5 py-3 text-left text-xs font-medium text-gray-400 uppercase">Statut</th>
+                <th class="px-5 py-3"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <template x-for="u in users" :key="u.id">
+                <tr class="hover:bg-gray-50">
+                  <td class="px-5 py-3 font-medium" x-text="u.nom"></td>
+                  <td class="px-5 py-3 text-gray-500" x-text="u.email"></td>
+                  <td class="px-5 py-3"><span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600" x-text="u.role"></span></td>
+                  <td class="px-5 py-3"><span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="u.actif ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'" x-text="u.actif ? 'Actif' : 'Désactivé'"></span></td>
+                  <td class="px-5 py-3 text-right">
+                    <div class="flex items-center gap-2 justify-end">
+                      <button @click="editUserModal={...u}" class="text-xs border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-900 hover:text-white transition-all font-medium">Modifier</button>
+                      <button x-show="u.id !== currentUser?.id" @click="deleteUser(u)" class="text-xs border border-red-200 text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition-all font-medium">Supprimer</button>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+</tbody>
+          </table>
+        </div>
+      </div>
+
+      <div x-show="page === 'appointments'" x-init="$watch('page', v => v === 'appointments' && loadAppointments())">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-xl font-semibold text-gray-900">Gestion des Rendez-vous</h1>
+            <p class="text-sm text-gray-400 mt-1">Planifiez des rendez-vous et suivez les confirmations clients.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <a x-show="!googleConnected" :href="`${API}/api/integrations/google/login`"
+               class="flex items-center gap-2 px-3 py-2 text-xs font-medium border border-gray-200 rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm">
+              🔴 Connecter Google Calendar &amp; Gmail
+            </a>
+            <div x-show="googleConnected" class="flex items-center gap-2">
+              <span class="text-xs font-medium text-green-600 bg-green-50 px-3 py-2 rounded-lg border border-green-100">🟢 Google Synchronisé</span>
+              <button @click="disconnectGoogle()" class="text-xs text-gray-400 hover:text-red-500 transition-colors">Déconnecter</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+            <div class="bg-white border border-gray-200 rounded-xl p-3 flex gap-2 text-sm shadow-sm">
+              <button @click="aptFilter = 'tous'" :class="aptFilter === 'tous' ? 'bg-gray-100 font-medium text-gray-900' : 'text-gray-500'" class="px-3 py-1.5 rounded-lg">Tous</button>
+              <button @click="aptFilter = 'en_attente'" :class="aptFilter === 'en_attente' ? 'bg-gray-100 font-medium text-gray-900' : 'text-gray-500'" class="px-3 py-1.5 rounded-lg">En attente</button>
+              <button @click="aptFilter = 'confirme'" :class="aptFilter === 'confirme' ? 'bg-gray-100 font-medium text-gray-900' : 'text-gray-500'" class="px-3 py-1.5 rounded-lg">Confirmé</button>
+              <button @click="aptFilter = 'annule'" :class="aptFilter === 'annule' ? 'bg-gray-100 font-medium text-gray-900' : 'text-gray-500'" class="px-3 py-1.5 rounded-lg">Annulé</button>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <div x-show="filteredAppointments().length === 0" class="text-center py-16 text-gray-300 text-sm">Aucun rendez-vous trouvé</div>
+              <div x-show="filteredAppointments().length > 0" style="overflow-x:auto">
+                <table class="w-full table-fixed text-sm">
+                  <colgroup><col style="width:160px"/><col style="width:120px"/><col style="width:120px"/><col style="width:95px"/><col style="width:130px"/></colgroup>
+                  <thead>
+                    <tr class="border-b border-gray-100 bg-gray-50">
+                      <th class="text-left px-4 h-9 text-[10px] font-medium text-gray-400 uppercase tracking-wide">Client</th>
+                      <th class="text-left px-3 h-9 text-[10px] font-medium text-gray-400 uppercase tracking-wide">Objet</th>
+                      <th class="text-left px-3 h-9 text-[10px] font-medium text-gray-400 uppercase tracking-wide">Date & Heure</th>
+                      <th class="text-left px-3 h-9 text-[10px] font-medium text-gray-400 uppercase tracking-wide">Statut</th>
+                      <th class="text-left px-3 h-9 text-[10px] font-medium text-gray-400 uppercase tracking-wide">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="apt in filteredAppointments()" :key="apt.id">
+                      <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                        <td class="px-4 py-3">
+                          <div class="font-medium text-[11.5px] text-gray-900" x-text="apt.nom_client"></div>
+                          <div class="text-[10px] text-gray-400 truncate" x-text="apt.email_client"></div>
+                        </td>
+                        <td class="px-3 py-3 text-[11.5px] text-gray-500 truncate" x-text="apt.objet"></td>
+                        <td class="px-3 py-3">
+                          <div class="text-[11.5px] text-gray-900" x-text="apt.date_heure.replace('T', ' ')"></div>
+                          <div class="text-xs text-gray-500 mt-0.5" x-text="`(${apt.duration || 60} min)`"></div>
+                        </td>
+                        <td class="px-3 py-3">
+                          <span class="inline-flex items-center text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap"
+                            :class="apt.statut === 'confirme' ? 'bg-green-50 text-green-600' : (apt.statut === 'annule' ? 'bg-red-50 text-red-500' : 'bg-yellow-50 text-yellow-600')"
+                            x-text="apt.statut === 'confirme' ? 'Confirmé' : (apt.statut === 'annule' ? 'Annulé' : 'En attente')">
+                          </span>
+                        </td>
+                        <td class="px-2 py-3">
+                          <div class="flex items-center gap-1.5">
+<button @click="window.open(apt.google_event_url || 'https://calendar.google.com/', '_blank')" title="Ouvrir dans Google Calendar" class="text-gray-300 hover:text-blue-500 transition-colors">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            </button>
+                            <button @click="deleteAppointment(apt)" class="text-gray-300 hover:text-red-500 transition-colors">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── POPUP STATUT ──────────────────────────────────────────────────────── -->
+  <div x-show="statutMenu" class="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-xl py-1 min-w-[160px]"
+    :style="statutMenu ? `top:${statutMenu.y}px;left:${statutMenu.x}px` : ''"
+    @click.outside="statutMenu=null">
+    <template x-for="s in statutsList.filter(s=>!['tous','rdv_pris','rdv_confirme','rdv_annule'].includes(s.key))" :key="s.key">
+      <button class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors flex items-center gap-2"
+        @click="patchLead(statutMenu.lead.id,{statut:s.key}); statutMenu.lead.statut=s.key; statutMenu=null">
+        <span class="w-2 h-2 rounded-full shrink-0" :class="statutDot(s.key)"></span>
+        <span x-text="s.label" :class="s.key===statutMenu?.lead?.statut ? 'font-semibold' : ''"></span>
+      </button>
+    </template>
+  </div>
+
+  <!-- ── POPUP STATUT RENDEZ-VOUS ──────────────────────────────────────────── -->
+  <div x-show="aptMenu" class="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-xl py-1 min-w-[160px]"
+    :style="aptMenu ? `top:${aptMenu.y}px;left:${aptMenu.x}px` : ''"
+    @click.outside="aptMenu=null">
+    <template x-for="s in aptStatutsList" :key="s.key">
+      <button class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors flex items-center gap-2"
+        @click="patchAppointment(aptMenu.apt.id,{statut:s.key}); aptMenu.apt.statut=s.key; aptMenu=null">
+        <span class="w-2 h-2 rounded-full shrink-0" :class="s.key==='confirme' ? 'bg-green-500' : (s.key==='annule' ? 'bg-red-500' : 'bg-yellow-400')"></span>
+        <span x-text="s.label" :class="s.key===aptMenu?.apt?.statut ? 'font-semibold' : ''"></span>
+      </button>
+    </template>
+  </div>
+
+  <!-- ── MODAL Détail lead ──────────────────────────────────────────────────── -->
+  <div x-show="leadDetail" class="fixed inset-0 bg-black/20 flex items-end sm:items-center justify-center z-50" @click.self="leadDetail=null">
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 w-full max-w-lg mx-4 mb-4 sm:mb-0 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-start justify-between mb-5">
+        <div>
+          <h2 class="text-base font-semibold text-gray-900" x-text="leadDetail?.title"></h2>
+          <p class="text-xs text-gray-400" x-text="leadDetail?.activite"></p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button @click="saveLeadDetail()" class="text-xs bg-gray-900 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 font-medium">Sauvegarder</button>
+          <button @click="leadDetail=null" class="text-gray-400 hover:text-gray-700 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">Prénom</label>
+          <input x-model="leadDetail.prenom" placeholder="—" class="w-full text-sm text-gray-900 bg-transparent border-0 focus:outline-none focus:bg-gray-50 focus:px-1 rounded p-0">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">Nom</label>
+          <input x-model="leadDetail.nom" placeholder="—" class="w-full text-sm text-gray-900 bg-transparent border-0 focus:outline-none focus:bg-gray-50 focus:px-1 rounded p-0">
+        </div>
+        <div x-show="leadDetail?.telephone">
+          <label class="block text-xs text-gray-600 mb-1">Téléphone</label>
+          <a :href="`tel:${leadDetail?.telephone}`" class="text-sm text-blue-600 font-medium" x-text="leadDetail?.telephone"></a>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">Email</label>
+          <input x-model="leadDetail.email" placeholder="—" type="email" class="w-full text-sm text-gray-900 bg-transparent border-0 focus:outline-none focus:bg-gray-50 focus:px-1 rounded p-0">
+        </div>
+        <div x-show="leadDetail?.city">
+          <label class="block text-xs text-gray-600 mb-1">Ville</label>
+          <p class="text-sm text-gray-900" x-text="leadDetail?.city"></p>
+        </div>
+        <div x-show="leadDetail?.lien">
+          <label class="block text-xs text-gray-600 mb-1">Google Maps</label>
+          <a :href="leadDetail?.lien" target="_blank" class="text-sm text-blue-600 hover:underline flex items-center gap-1">
+            Voir la fiche
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+        </div>
+      </div>
+      <div class="mb-4">
+        <p class="text-xs text-gray-600 mb-1">Statut</p>
+        <select x-model="leadDetail.statut" class="text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer focus:outline-none" :class="statutClass(leadDetail?.statut)">
+          <template x-for="s in statutsList.filter(s=>s.key!=='tous')" :key="s.key">
+            <option :value="s.key" x-text="s.label"></option>
+          </template>
+        </select>
+      </div>
+      <div class="mb-4">
+        <p class="text-xs text-gray-600 mb-1">Note</p>
+        <textarea x-model="leadDetail.note" rows="3" placeholder="Ajouter une note..." class="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-300 resize-none"></textarea>
+      </div>
+      <div>
+        <p class="text-xs text-gray-600 mb-2">Tags</p>
+        <div class="flex flex-wrap gap-1.5 mb-2">
+          <template x-for="tag in (leadDetail?.tags ? JSON.parse(leadDetail.tags) : [])" :key="tag">
+            <span class="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded-full">
+              <span x-text="tag"></span>
+              <button @click="removeTag(tag)" class="text-blue-400 hover:text-blue-700">×</button>
+            </span>
+          </template>
+        </div>
+        <div x-data="{t:''}" class="flex gap-1">
+          <input x-model="t" placeholder="Ajouter un tag..." @keydown.enter.prevent="addTag(t); t=''" class="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-gray-400 flex-1">
+          <button @click="addTag(t); t=''" class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-lg hover:bg-gray-200">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL Import CSV ───────────────────────────────────────────────────── -->
+  <div x-show="importCsvModal" class="fixed inset-0 bg-black/20 flex items-center justify-center z-50" @click.self="importCsvModal=false">
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 w-full max-w-md mx-4">
+      <h2 class="text-base font-semibold text-gray-900 mb-1">Importer des leads CSV</h2>
+      <p class="text-xs text-gray-400 mb-4">Colonnes : <code class="bg-gray-100 px-1 rounded">title</code> <code class="bg-gray-100 px-1 rounded">telephone</code> <code class="bg-gray-100 px-1 rounded">email</code> <code class="bg-gray-100 px-1 rounded">city</code> <code class="bg-gray-100 px-1 rounded">activite</code> <code class="bg-gray-100 px-1 rounded">lien</code></p>
+      <div class="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center cursor-pointer hover:border-gray-400 transition-colors mb-3"
+        @dragover.prevent @drop.prevent="importCsv({target:{files:$event.dataTransfer.files}})" @click="$refs.csvInput.click()">
+        <svg class="mx-auto mb-2 text-gray-300" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <p class="text-sm text-gray-500">Glisse un <strong>.csv</strong> ici ou clique</p>
+        <input type="file" accept=".csv" class="hidden" x-ref="csvInput" @change="importCsv($event)">
+      </div>
+      <div x-show="importCsvMsg" class="text-sm text-green-600 font-medium text-center mb-2" x-text="importCsvMsg"></div>
+      <div x-show="importCsvLoading" class="text-sm text-gray-400 text-center mb-2">Import en cours...</div>
+      <button @click="importCsvModal=false; importCsvMsg=null" class="w-full text-sm text-gray-500 border border-gray-200 rounded-lg py-2 hover:bg-gray-50">Fermer</button>
+    </div>
+  </div>
+
+  <!-- ── MODAL Nouveau lead ──────────────────────────────────────────────────── -->
+  <div x-show="newLeadModal" class="fixed inset-0 bg-black/20 flex items-center justify-center z-50" @click.self="newLeadModal=false">
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 w-full max-w-sm mx-4">
+      <h2 class="text-base font-semibold text-gray-900 mb-4">Nouveau lead</h2>
+      <div class="space-y-3 mb-4">
+        <input x-model="newLead.title" placeholder="Nom / Entreprise *" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+        <input x-model="newLead.telephone" placeholder="Téléphone" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+        <input x-model="newLead.email" placeholder="Email" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+        <input x-model="newLead.city" placeholder="Ville" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+      </div>
+      <div class="flex gap-2">
+        <button @click="createLead()" class="flex-1 bg-gray-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-700">Créer</button>
+        <button @click="newLeadModal=false" class="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL Créer utilisateur ────────────────────────────────────────────── -->
+  <div x-show="createUserModal" class="fixed inset-0 bg-black/20 flex items-center justify-center z-50" @click.self="createUserModal=false">
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 w-full max-w-sm mx-4">
+      <h2 class="text-base font-semibold text-gray-900 mb-4">Créer un compte</h2>
+      <div class="space-y-3 mb-4">
+        <input x-model="newUser.nom" placeholder="Nom complet" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+        <input x-model="newUser.email" type="email" placeholder="Email" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+        <input x-model="newUser.password" type="password" placeholder="Mot de passe" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+        <select x-model="newUser.role" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none">
+          <option value="user">user</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+      <div x-show="newUserError" class="text-xs text-red-500 mb-3" x-text="newUserError"></div>
+      <div class="flex gap-2">
+        <button @click="createUser()" :disabled="newUserLoading" class="flex-1 bg-gray-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-40">
+          <span x-show="!newUserLoading">Créer</span><span x-show="newUserLoading">...</span>
+        </button>
+        <button @click="createUserModal=false" class="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL Modifier utilisateur ────────────────────────────────────────── -->
+  <div x-show="editUserModal" class="fixed inset-0 bg-black/20 flex items-center justify-center z-50" @click.self="editUserModal=null">
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 w-full max-w-sm mx-4">
+      <h2 class="text-base font-semibold text-gray-900 mb-4" x-text="`Modifier — ${editUserModal?.nom}`"></h2>
+      <div class="space-y-3 mb-4">
+        <input :value="editUserModal?.email" disabled class="w-full border border-gray-100 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-400 cursor-not-allowed">
+        <input x-model="editUserModal.nom" placeholder="Nom" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+        <select x-model="editUserModal.role" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          <option value="user">user</option>
+          <option value="admin">admin</option>
+        </select>
+        <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+          <input type="checkbox" :checked="editUserModal?.actif" @change="editUserModal.actif = $event.target.checked ? 1 : 0" class="accent-gray-900">
+          Compte actif
+        </label>
+      </div>
+      <div class="flex gap-2">
+        <button @click="saveUser()" class="flex-1 bg-gray-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-700">Enregistrer</button>
+        <button @click="editUserModal=null" class="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL Créer RDV depuis Lead ──────────────────────────────────────── -->
+  <div x-show="leadRdvCreateModal" class="fixed inset-0 bg-black/20 flex items-center justify-center z-50" @click.self="leadRdvCreateModal=null">
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 w-full max-w-md mx-4">
+      <div x-show="leadRdvCreateSuccess" class="text-center py-10">
+        <div class="text-5xl mb-3">🎉</div>
+        <p class="font-semibold text-gray-900">Rendez-vous planifié, relances activées !</p>
+        <p class="text-xs text-gray-400 mt-1">Fermeture automatique…</p>
+      </div>
+      <div x-show="!leadRdvCreateSuccess">
+        <div class="flex items-center justify-between mb-4">
+          <div><h2 class="text-base font-semibold text-gray-900">Planifier un RDV</h2>
+          <p class="text-xs text-gray-400 mt-0.5" x-text="`Pour : ${leadRdvCreateModal?.title}`"></p></div>
+          <button @click="leadRdvCreateModal=null" class="text-gray-400 hover:text-gray-700 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-sm">✕</button>
+        </div>
+        <div x-show="!googleConnected" class="mb-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          ⚠️ Connectez votre Google Calendar pour vérifier vos disponibilités en temps réel.
+        </div>
+        <form @submit.prevent="submitLeadRdv()" class="space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-xs text-gray-400 mb-1">Nom client *</label>
+              <input x-model="leadRdvForm.nom_client" required class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-900"></div>
+            <div><label class="block text-xs text-gray-400 mb-1">Email *</label>
+              <input x-model="leadRdvForm.email_client" type="email" required class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-900"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-xs text-gray-400 mb-1">Téléphone *</label>
+              <input x-model="leadRdvForm.telephone_client" required class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-900"></div>
+            <div><label class="block text-xs text-gray-400 mb-1">Durée *</label>
+              <select x-model.number="leadRdvForm.duration" @change="rdvDate && fetchSlots()" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-900">
+                <option value="15">15 min</option><option value="30" selected>30 min</option><option value="45">45 min</option>
+                <option value="60">1h</option><option value="90">1h30</option><option value="120">2h</option>
+              </select></div>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Date *</label>
+            <input type="date" x-model="rdvDate" required @change="fetchSlots()" :min="new Date().toISOString().split('T')[0]" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-900">
+          </div>
+          <div x-show="rdvDate">
+            <label class="block text-xs text-gray-400 mb-1 flex items-center gap-2">
+              Créneau *
+              <span x-show="rdvSlotsLoading" class="text-gray-300 font-normal">Chargement…</span>
+            </label>
+            <div x-show="rdvSlotsLoading" class="grid grid-cols-4 gap-2">
+              <template x-for="i in 16" :key="i">
+                <div class="h-8 bg-gray-100 rounded-lg animate-pulse"></div>
+              </template>
+            </div>
+            <div x-show="!rdvSlotsLoading" class="grid grid-cols-4 gap-2">
+              <template x-for="slot in rdvSlots" :key="slot.time">
+                <button type="button" @click="!slot.busy && (rdvSelectedTime = slot.time)" :disabled="slot.busy"
+                  :class="slot.busy ? 'bg-gray-100 text-gray-400 cursor-not-allowed line-through' : (rdvSelectedTime === slot.time ? 'bg-gray-900 text-white font-semibold' : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-900 hover:text-gray-900')"
+                  class="text-xs py-1.5 rounded-lg transition-colors" x-text="slot.time">
+                </button>
+              </template>
+            </div>
+          </div>
+          <div><label class="block text-xs text-gray-400 mb-1">Objet *</label>
+            <input x-model="leadRdvForm.objet" required class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-900"></div>
+          <div><label class="block text-xs text-gray-400 mb-1">Note</label>
+            <textarea x-model="leadRdvForm.notes" rows="2" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-900"></textarea></div>
+          <button type="submit" :disabled="leadRdvCreating" class="w-full bg-gray-900 disabled:opacity-60 text-white text-sm font-medium py-2 rounded-lg hover:bg-gray-700 transition-colors" x-text="leadRdvCreating ? 'Création en cours...' : 'Planifier le RDV'"></button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL Consulter RDV depuis Lead ───────────────────────────────────── -->
+  <div x-show="leadRdvDetail" class="fixed inset-0 bg-black/20 flex items-center justify-center z-50" @click.self="leadRdvDetail=null">
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 w-full max-w-sm mx-4">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-base font-semibold text-gray-900">Rendez-vous associé</h2>
+        <button @click="leadRdvDetail=null" class="text-gray-400 hover:text-gray-700 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-sm">✕</button>
+      </div>
+      <div class="space-y-3 mb-4 text-sm">
+        <div class="flex justify-between"><span class="text-gray-400">Client</span><span class="font-medium text-gray-900" x-text="leadRdvDetail?.title"></span></div>
+        <div class="flex justify-between"><span class="text-gray-400">Objet</span><span class="font-medium text-gray-900" x-text="leadRdvDetail?.rdv_objet"></span></div>
+        <div class="flex justify-between"><span class="text-gray-400">Date & Heure</span>
+          <span :class="leadRdvDetail?.rdv_statut==='annule' ? 'text-gray-400 line-through' : 'font-medium text-gray-900'" x-text="leadRdvDetail?.rdv_date?.replace('T',' ')"></span>
+        </div>
+        <div class="flex justify-between"><span class="text-gray-400">Durée</span>
+          <span :class="leadRdvDetail?.rdv_statut==='annule' ? 'text-gray-400 line-through' : 'font-medium text-gray-900'" x-text="`${leadRdvDetail?.rdv_duration || 60} min`"></span>
+        </div>
+        <div class="flex justify-between items-center"><span class="text-gray-400">Statut</span>
+          <span class="text-xs px-2.5 py-1 rounded-full font-medium"
+            :class="leadRdvDetail?.rdv_statut==='confirme' ? 'bg-green-50 text-green-600' : (leadRdvDetail?.rdv_statut==='annule' ? 'bg-red-50 text-red-500' : 'bg-yellow-50 text-yellow-600')"
+            x-text="leadRdvDetail?.rdv_statut==='confirme' ? 'Confirmé' : (leadRdvDetail?.rdv_statut==='annule' ? 'Annulé' : 'En attente')">
+          </span>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button x-show="leadRdvDetail?.rdv_statut !== 'annule'" @click="cancelLeadRdv(leadRdvDetail)" class="flex-1 text-xs py-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors">Annuler ce RDV</button>
+        <button x-show="leadRdvDetail?.rdv_statut === 'annule'" @click="rescheduleRdv()" class="flex-1 text-xs py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors font-medium">Reprogrammer un nouveau RDV</button>
+        <button @click="leadRdvDetail=null" class="flex-1 text-xs py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const API = window.location.origin;
+
+function apiFetch(url, options = {}) {
+  const token = localStorage.getItem('saas_token');
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return fetch(url, { ...options, headers });
+}
+
+function apiUpload(url, formData) {
+  const token = localStorage.getItem('saas_token');
+  return fetch(url, { method: 'POST', body: formData, headers: token ? { Authorization: `Bearer ${token}` } : {} });
+}
+
+function app() {
+  return {
+    page: 'login',
+    currentUser: null,
+    loginEmail: '', loginPassword: '', loginError: null, loginLoading: false,
+
+    // Leads
+    leads: [], leadsTotal: 0, leadsTotalAll: 0,
+    leadPage: 1, leadPageSize: 25,
+    leadSearch: '', leadStatut: 'tous', leadTimer: null,
+    newLeadModal: false, newLead: { title: '', telephone: '', email: '', city: '' },
+    leadDetail: null, _leadDetailSource: null,
+    statutMenu: null,
+    googleConnected: false,
+    leadRdvCreateModal: null, leadRdvCreateSuccess: false, leadRdvCreating: false,
+    leadRdvForm: { nom_client: '', email_client: '', telephone_client: '', objet: '', date_heure: '', notes: '', statut: 'en_attente', duration: 30 },
+    rdvDate: '', rdvSlots: [], rdvSlotsLoading: false, rdvSelectedTime: '',
+    leadRdvDetail: null,
+    importCsvModal: false, importCsvMsg: null, importCsvLoading: false,
+    statutsList: [
+      { key: 'tous',          label: 'Tous' },
+      { key: 'nouveau',       label: 'Nouveau' },
+      { key: 'ne_repond_pas', label: 'Ne répond pas' },
+      { key: 'pas_interesse', label: 'Pas intéressé' },
+      { key: 'rappeler',      label: 'A rappeler' },
+      { key: 'rdv_pris',      label: 'RDV pris' },
+      { key: 'rdv_confirme',  label: 'RDV Confirmé' },
+      { key: 'rdv_annule',    label: 'RDV Annulé' },
+    ],
+
+   // Équipe
+    users: [], createUserModal: false, editUserModal: null,
+    newUser: { nom: '', email: '', password: '', role: 'user' },
+    newUserError: null, newUserLoading: false,
+
+    // Rendez-vous
+    appointments: [],
+    aptFilter: 'tous',
+    aptMenu: null, aptCreating: false,
+    newApt: { nom_client: '', email_client: '', telephone_client: '', objet: '', date_heure: '', notes: '', statut: 'en_attente', duration: 60 },
+    aptStatutsList: [
+      { key: 'en_attente', label: 'En attente' },
+      { key: 'confirme',   label: 'Confirmé' },
+      { key: 'annule',     label: 'Annulé' },
+    ],
+
+    async loadAppointments() {
+      const r = await apiFetch(`${API}/appointments/`);
+      if (r?.ok) this.appointments = await r.json();
+    },
+    async createAppointment() {
+      this.aptCreating = true;
+      const r = await apiFetch(`${API}/appointments/`, { method: 'POST', body: JSON.stringify(this.newApt) });
+      this.aptCreating = false;
+      if (r.ok) {
+        const data = await r.json();
+        this.newApt = { nom_client: '', email_client: '', telephone_client: '', objet: '', date_heure: '', notes: '', statut: 'en_attente', duration: 60 };
+        await this.loadAppointments();
+      }
+    },
+    filteredAppointments() {
+      if (this.aptFilter === 'tous') return this.appointments;
+      return this.appointments.filter(a => a.statut === this.aptFilter);
+    },
+    async patchAppointment(id, fields) { await apiFetch(`${API}/appointments/${id}`, { method: 'PATCH', body: JSON.stringify(fields) }); },
+    async deleteAppointment(apt) {
+      if (!confirm(`Supprimer le RDV avec ${apt.nom_client} ?`)) return;
+      await apiFetch(`${API}/appointments/${apt.id}`, { method: 'DELETE' });
+      this.appointments = this.appointments.filter(a => a.id !== apt.id);
+    },
+    openAptMenu(event, apt) { const r = event.currentTarget.getBoundingClientRect(); this.aptMenu = { apt, x: r.left, y: r.bottom + 4 }; },
+    addToCalendar(apt) {
+      const start = new Date(apt.date_heure);
+      const end   = new Date(start.getTime() + 60 * 60 * 1000);
+      const fmt   = d => d.toISOString().replace(/[-:.]/g,'').slice(0,15);
+      const gcUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(apt.objet)}&dates=${fmt(start)}/${fmt(end)}&details=${encodeURIComponent('RDV avec ' + apt.nom_client + (apt.notes ? '\n' + apt.notes : ''))}`;
+      window.open(gcUrl, '_blank');
+      const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nDTSTART:${fmt(start)}\r\nDTEND:${fmt(end)}\r\nSUMMARY:${apt.objet}\r\nDESCRIPTION:RDV avec ${apt.nom_client}${apt.notes ? ' - ' + apt.notes : ''}\r\nEND:VEVENT\r\nEND:VCALENDAR`;
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([ics], {type:'text/calendar'})), download: `rdv-${apt.nom_client.replace(/\s+/g,'_')}.ics` });
+      a.click();
+    },
+
+    // ── Helpers statuts ──────────────────────────────────────────────────────
+    statutClass(s) {
+      return {
+        nouveau:       'bg-gray-100 text-gray-600',
+        ne_repond_pas: 'bg-red-100 text-red-600',
+        pas_interesse: 'bg-orange-100 text-orange-600',
+        rappeler:      'bg-blue-100 text-blue-600',
+        rdv_pris:      'bg-blue-100 text-blue-700',
+        rdv_confirme:  'bg-green-100 text-green-700',
+        rdv_annule:    'bg-red-100 text-red-600',
+      }[s] || 'bg-gray-100 text-gray-600';
+    },
+    statutDot(s) {
+      return {
+        nouveau: 'bg-gray-400', ne_repond_pas: 'bg-red-500',
+        pas_interesse: 'bg-orange-400', rappeler: 'bg-blue-500', rdv_pris: 'bg-blue-600', rdv_confirme: 'bg-green-500', rdv_annule: 'bg-red-500',
+      }[s] || 'bg-gray-400';
+    },
+
+    // ── Auth ──────────────────────────────────────────────────────────────────
+    async login() {
+      this.loginLoading = true; this.loginError = null;
+      try {
+        const r = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: this.loginEmail, password: this.loginPassword }) });
+        if (!r.ok) { const e = await r.json(); this.loginError = e.detail || 'Erreur'; return; }
+        const d = await r.json();
+        localStorage.setItem('saas_token', d.token);
+        this.currentUser = d.user;
+        await this.afterLogin();
+      } catch { this.loginError = 'Serveur inaccessible'; }
+      finally { this.loginLoading = false; }
+    },
+    logout() { localStorage.removeItem('saas_token'); this.currentUser = null; this.page = 'login'; },
+    async afterLogin() {
+      const map = { dashboard:'dashboard', leads:'leads', settings:'settings', team:'team', appointments:'appointments' };
+      const hash = window.location.pathname.replace('/', '') || 'dashboard';
+      this.page = map[hash] || 'dashboard';
+      this.$watch('page', p => { if (p === 'login') return; const rev = { dashboard:'dashboard', leads:'leads', settings:'settings', team:'team', appointments:'appointments' }; history.pushState(null, '', `/${rev[p] || 'dashboard'}`); });
+      await this.loadLeads();
+      await this.loadGoogleStatus();
+    },
+    async loadGoogleStatus() {
+      const r = await apiFetch(`${API}/api/integrations/google/status`);
+      if (r?.ok) { const d = await r.json(); this.googleConnected = d.connected; }
+    },
+    async disconnectGoogle() {
+      await apiFetch(`${API}/api/integrations/google/disconnect`, { method: 'POST' });
+      this.googleConnected = false;
+    },
+    async init() {
+      const token = localStorage.getItem('saas_token');
+      if (!token) { this.page = 'login'; return; }
+      const r = await apiFetch(`${API}/auth/me`);
+      if (!r || !r.ok) { this.page = 'login'; return; }
+      this.currentUser = await r.json();
+      await this.afterLogin();
+    },
+
+    // ── Leads ──────────────────────────────────────────────────────────────────
+    async loadLeads() {
+      const p = new URLSearchParams({ page: this.leadPage, page_size: this.leadPageSize });
+      if (this.leadSearch) p.append('q', this.leadSearch);
+      if (this.leadStatut !== 'tous') p.append('statut', this.leadStatut);
+      const r = await apiFetch(`${API}/leads/?${p}`);
+      const d = await r.json();
+      this.leads = d.items; this.leadsTotal = d.total;
+      if (this.leadsTotalAll === 0) { const rt = await apiFetch(`${API}/leads/?page=1&page_size=1`); const rd = await rt.json(); this.leadsTotalAll = rd.total; }
+    },
+    openNewLead() { this.newLead = { title: '', telephone: '', email: '', city: '' }; this.newLeadModal = true; },
+    async createLead() {
+      if (!this.newLead.title.trim()) return;
+      const r = await apiFetch(`${API}/leads/`, { method: 'POST', body: JSON.stringify(this.newLead) });
+      if (r.ok) { this.newLeadModal = false; this.leadsTotalAll = 0; await this.loadLeads(); }
+    },
+    openLeadDetail(lead) { this._leadDetailSource = lead; this.leadDetail = { ...lead }; },
+    async saveLeadDetail() {
+      if (!this.leadDetail) return;
+      const l = this.leadDetail;
+      await apiFetch(`${API}/leads/${l.id}`, { method: 'PATCH', body: JSON.stringify({ nom: l.nom||'', prenom: l.prenom||'', email: l.email||'', statut: l.statut, note: l.note||'', tags: l.tags }) });
+      if (this._leadDetailSource) Object.assign(this._leadDetailSource, l);
+      this.leadDetail = null;
+      await this.loadLeads();
+    },
+    async patchLead(id, fields) { await apiFetch(`${API}/leads/${id}`, { method: 'PATCH', body: JSON.stringify(fields) }); },
+    async deleteLead(lead) {
+      if (!confirm(`Supprimer ${lead.title} ?`)) return;
+      await apiFetch(`${API}/leads/${lead.id}`, { method: 'DELETE' });
+      this.leads = this.leads.filter(l => l.id !== lead.id);
+      this.leadsTotal = Math.max(0, this.leadsTotal - 1);
+      this.leadsTotalAll = Math.max(0, this.leadsTotalAll - 1);
+    },
+    openLeadRdvCreate(lead) {
+      this.leadRdvForm = { nom_client: lead.nom || lead.title, email_client: lead.email || '', telephone_client: lead.telephone || '', objet: '', date_heure: '', notes: '', statut: 'en_attente', duration: 30 };
+      this.rdvDate = '';
+      this.rdvSlots = [];
+      this.rdvSelectedTime = '';
+      this.rdvSlotsLoading = false;
+      this.leadRdvCreateSuccess = false;
+      this.leadRdvCreateModal = lead;
+    },
+    async submitLeadRdv() {
+      if (!this.rdvDate || !this.rdvSelectedTime) {
+        alert('Veuillez choisir une date et un créneau horaire.');
+        return;
+      }
+      this.leadRdvForm.date_heure = this.rdvDate + 'T' + this.rdvSelectedTime;
+      this.leadRdvCreating = true;
+      const r = await apiFetch(`${API}/appointments/`, { method: 'POST', body: JSON.stringify({ ...this.leadRdvForm, lead_id: this.leadRdvCreateModal.id }) });
+      this.leadRdvCreating = false;
+      if (r?.ok) {
+        this.leadRdvCreateSuccess = true;
+        await this.loadLeads();
+        setTimeout(() => { this.leadRdvCreateModal = null; this.leadRdvCreateSuccess = false; }, 2500);
+      }
+    },
+    async cancelLeadRdv(lead) {
+      if (!confirm('Annuler ce rendez-vous ?')) return;
+      await apiFetch(`${API}/appointments/${lead.rdv_id}`, { method: 'PATCH', body: JSON.stringify({ statut: 'annule' }) });
+      this.leadRdvDetail = null;
+      await this.loadLeads();
+    },
+    rescheduleRdv() {
+      const lead = this.leadRdvDetail;
+      this.leadRdvDetail = null;
+      this.$nextTick(() => this.openLeadRdvCreate(lead));
+    },
+    async fetchSlots() {
+      this.rdvSlots = [];
+      this.rdvSelectedTime = '';
+      if (!this.rdvDate) return;
+      const times = [];
+      for (let h = 9; h < 17; h++) {
+        times.push(`${String(h).padStart(2, '0')}:00`);
+        times.push(`${String(h).padStart(2, '0')}:30`);
+      }
+      if (!this.googleConnected) {
+        this.rdvSlots = times.map(t => ({ time: t, busy: false }));
+        return;
+      }
+      this.rdvSlotsLoading = true;
+      const results = await Promise.all(
+        times.map(t =>
+          apiFetch(`${API}/api/integrations/google/freebusy?date_heure=${encodeURIComponent(this.rdvDate + 'T' + t)}&duration=${this.leadRdvForm.duration}`)
+            .then(r => r?.ok ? r.json() : { busy: false })
+            .catch(() => ({ busy: false }))
+        )
+      );
+      this.rdvSlots = times.map((t, i) => ({ time: t, busy: !!results[i].busy }));
+      this.rdvSlotsLoading = false;
+    },
+    openStatutMenu(event, lead) { const r = event.currentTarget.getBoundingClientRect(); this.statutMenu = { lead, x: r.left, y: r.bottom + 4 }; },
+    addTag(tag) {
+      if (!tag.trim() || !this.leadDetail) return;
+      const tags = JSON.parse(this.leadDetail.tags || '[]');
+      if (!tags.includes(tag.trim())) { tags.push(tag.trim()); this.leadDetail.tags = JSON.stringify(tags); }
+    },
+    removeTag(tag) {
+      if (!this.leadDetail) return;
+      const tags = JSON.parse(this.leadDetail.tags || '[]').filter(t => t !== tag);
+      this.leadDetail.tags = JSON.stringify(tags);
+    },
+    async importCsv(event) {
+      const file = event.target.files[0]; if (!file) return;
+      this.importCsvLoading = true; this.importCsvMsg = null;
+      const form = new FormData(); form.append('file', file);
+      const r = await apiUpload(`${API}/leads/import-csv`, form);
+      this.importCsvLoading = false;
+      if (r.ok) { const d = await r.json(); this.importCsvMsg = `${d.inserted} importés, ${d.skipped} ignorés`; this.leadsTotalAll = 0; await this.loadLeads(); }
+      event.target.value = '';
+    },
+
+    // ── Équipe ──────────────────────────────────────────────────────────────────
+    async loadUsers() { const r = await apiFetch(`${API}/auth/users`); if (r?.ok) this.users = await r.json(); },
+    async createUser() {
+      if (!this.newUser.nom || !this.newUser.email || !this.newUser.password) { this.newUserError = 'Tous les champs sont requis'; return; }
+      this.newUserLoading = true; this.newUserError = null;
+      try {
+        const r = await apiFetch(`${API}/auth/users`, { method: 'POST', body: JSON.stringify(this.newUser) });
+        if (!r.ok) { const e = await r.json(); this.newUserError = e.detail || 'Erreur'; return; }
+        this.newUser = { nom: '', email: '', password: '', role: 'user' }; this.createUserModal = false; await this.loadUsers();
+      } finally { this.newUserLoading = false; }
+    },
+    async saveUser() { const u = this.editUserModal; await apiFetch(`${API}/auth/users/${u.id}`, { method: 'PATCH', body: JSON.stringify({ nom: u.nom, role: u.role, actif: u.actif }) }); this.editUserModal = null; await this.loadUsers(); },
+    async deleteUser(u) { if (!confirm(`Supprimer ${u.nom} ?`)) return; await apiFetch(`${API}/auth/users/${u.id}`, { method: 'DELETE' }); await this.loadUsers(); },
+  };
+}
+</script>
+</body>
+</html>
