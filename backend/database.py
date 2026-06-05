@@ -1,6 +1,9 @@
 import os
 import sqlite3
 from pathlib import Path
+from passlib.context import CryptContext
+
+_pwd_ctx = CryptContext(schemes=["bcrypt"])
 
 DB_PATH = Path(os.environ.get("DB_PATH", str(Path(__file__).parent / "saas.db")))
 
@@ -85,6 +88,13 @@ def init_db():
     for col, typedef in [("rappel_24h_envoye", "INTEGER DEFAULT 0"), ("rappel_2h_envoye", "INTEGER DEFAULT 0"), ("lead_id", "INTEGER"), ("google_event_url", "TEXT"), ("duration", "INTEGER DEFAULT 60")]:
         if col not in existing:
             conn.execute(f"ALTER TABLE appointment ADD COLUMN {col} {typedef}")
+
+    # ── Seed admin par défaut ──────────────────────────────────────────────────
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@demo.com")
+    admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
+    if not conn.execute("SELECT id FROM user WHERE email = ?", (admin_email,)).fetchone():
+        conn.execute("INSERT INTO user (email, password_hash, nom, role) VALUES (?, ?, ?, ?)",
+                     (admin_email, _pwd_ctx.hash(admin_password), "Admin", "admin"))
 
 # Validation et ENFIN Fermeture (À laisser tout à la fin)
     conn.commit()
