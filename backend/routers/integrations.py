@@ -1,11 +1,11 @@
 import os, json, logging, base64
-from zoneinfo import ZoneInfo
+from typing import Tuple
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from urllib.request import Request as HttpRequest, urlopen
 from urllib.error import URLError
 from urllib.parse import urlencode
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from database import get_db
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/integrations", tags=["integrations"])
 
 # ── Helpers Google Calendar ────────────────────────────────────────────────────
 
-def _create_calendar_event(nom_client: str, email_client: str, date_heure: str, notes: str = "", duration: int = 60) -> tuple[str, str]:
+def _create_calendar_event(nom_client: str, email_client: str, date_heure: str, notes: str = "", duration: int = 60) -> Tuple[str, str]:
     """Crée un événement Google Calendar et invite le client.
 
     Retourne ``(event_id, event_url)`` — deux chaînes vides si Google n'est pas connecté
@@ -234,8 +234,8 @@ def google_freebusy(date_heure: str, duration: int = 30, current_user: dict = De
     if not token:
         return {"connected": False, "busy": False}
     try:
-        tz = ZoneInfo("Europe/Paris")
-        start_dt = datetime.fromisoformat(date_heure).replace(tzinfo=tz)
+        paris_tz = timedelta(hours=2)
+        start_dt = datetime.fromisoformat(date_heure).replace(tzinfo=timezone(paris_tz))
         end_dt = start_dt + timedelta(minutes=duration)
     except Exception:
         raise HTTPException(status_code=400, detail="Format de date invalide")

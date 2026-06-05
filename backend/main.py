@@ -1,4 +1,5 @@
 import asyncio
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -39,7 +40,8 @@ init_db()
 
 @app.on_event("startup")
 async def start_reminder_task():
-    asyncio.create_task(reminder_loop())
+    if not os.environ.get("VERCEL"):
+        asyncio.create_task(reminder_loop())
 
 
 @app.get("/health")

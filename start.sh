@@ -3,7 +3,7 @@ set -e
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT/backend"
 
-lsof -ti:8000 | xargs kill -9 2>/dev/null || true
+lsof -ti:8002 | xargs kill -9 2>/dev/null || true
 xattr -dr com.apple.quarantine .venv/ 2>/dev/null || true
 
 if [ ! -d ".venv" ]; then
@@ -13,5 +13,5 @@ if [ ! -d ".venv" ]; then
   .venv/bin/pip install -r requirements.txt
 fi
 
-echo "→ SaaS Template (port 8000)…"
-PYTHONWARNINGS=ignore .venv/bin/uvicorn main:app --port 8000
+echo "→ SaaS Template (port 8002)…"
+PYTHONWARNINGS=ignore .venv/bin/uvicorn main:app --port 8002
